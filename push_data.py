@@ -8,8 +8,6 @@ import pymongo
 import pymongo.mongo_client
 from NetworkSecurity.exception.exception import NetworkSecurityException
 from NetworkSecurity.logging import logger
-
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,7 +24,7 @@ class NetworkDataExtract():
         except Exception as e:
             raise NetworkSecurityException(e,sys)
         
-    def csv_to_json(self,file_path):
+    def csv_to_json(self,file_path):            ### Converting the csv into Json Format and returning the records in the form of list
         try:
             data = pd.read_csv(file_path)
             data.reset_index(drop=True,inplace=True)
@@ -35,14 +33,15 @@ class NetworkDataExtract():
         except Exception as e :
             raise NetworkSecurityException(e,sys)
 
-    def insert_data_mongo(self,records,database,collection):
+    def insert_data_mongo(self,records,database,collection):  ## Inserting Data into the MogoDB 
         try:  
              self.records = records
              self.database = database
              self.collection = collection
-             self.mongo_client = pymongo.MongoClient(MONGO_DB_URL)
+             self.mongo_client = pymongo.MongoClient(MONGO_DB_URL)  ## Create the MONGO CLIENT to connect with Database 
 
              self.database = self.mongo_client[self.database]
+             
              self.collection = self.database[self.collection]
 
              self.collection.insert_many(self.records)
