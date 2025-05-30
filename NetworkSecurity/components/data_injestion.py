@@ -1,90 +1,101 @@
-import pymongo.mongo_client
-from NetworkSecurity.exception.exception import  NetworkSecurityException
+from NetworkSecurity.exception.exception import NetworkSecurityException
 from NetworkSecurity.logging.logger import logging
-from NetworkSecurity.entity.artifact_entity import DataInjestionArtifact
-#### Importing the Data Injestion Config 
+
+
+## configuration of the Data Ingestion Config
+
 from NetworkSecurity.entity.config_entity import DataInjestionConfig
-import os 
+from NetworkSecurity.entity.artifact_entity import DataInjestionArtifact
+import os
 import sys
-import pymongo
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pymongo
 from typing import List
-from dotenv import load_dotenv
 from sklearn.model_selection import train_test_split
-
+from dotenv import load_dotenv
 load_dotenv()
-MONGO_DB_URL = os.getenv("MONGO_DB_URL")
 
-class DataInjestion:
-    def __init__(self,data_injestion_config:DataInjestionConfig):
+MONGO_DB_URL=os.getenv("MONGO_DB_URL")
+
+
+class DataIngestion:
+    def __init__(self,data_ingestion_config:DataInjestionConfig):
         try:
-            self.data_injestion_config = data_injestion_config
-
+            self.data_ingestion_config=data_ingestion_config
         except Exception as e:
             raise NetworkSecurityException(e,sys)
         
-
-    
-    def export_collection_to_dataframe(self):
+    def export_collection_as_dataframe(self):
+        """
+        Read data from mongodb
+        """
         try:
-            database_name = self.data_injestion_config.data_injestion_database_name
-            collection_name = self.data_injestion_config.data_injestion_collection_name
-            self.mongo_client = pymongo.MongoClient(MONGO_DB_URL)
-            collection = self.mongo_client[database_name][collection_name]
+            database_name=self.data_ingestion_config.data_injestion_database_name
+            collection_name=self.data_ingestion_config.data_injestion_collection_name
+            self.mongo_client=pymongo.MongoClient(MONGO_DB_URL)
+            collection=self.mongo_client[database_name][collection_name]
 
-            df = pd.DataFrame(list(collection.find()))
-            if "_id" in df.columns.tolist():
-                df.drop(columns=["_id"],axis=1)
+            df=pd.DataFrame(list(collection.find()))
+            if "_id" in df.columns.to_list():
+                df=df.drop(columns=["_id"],axis=1)
             
             df.replace({"na":np.nan},inplace=True)
             return df
-
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
-
-
-
-    
-    def export_data_into_feature_store(self,dataframe:pd.DataFrame):
+            raise NetworkSecurityException
+        
+    def export_data_into_feature_store(self,dataframe: pd.DataFrame):
         try:
-            feature_store_file_path = self.data_injestion_config.feature_store_dir
+            feature_store_file_path=self.data_ingestion_config.feature_store_path
+            #creating folder
             dir_path = os.path.dirname(feature_store_file_path)
             os.makedirs(dir_path,exist_ok=True)
             dataframe.to_csv(feature_store_file_path,index=False,header=True)
             return dataframe
-
+            
         except Exception as e:
             raise NetworkSecurityException(e,sys)
-
-
-
-    def split_data_train_test_split(self,dataframe:pd.DataFrame):
+        
+    def split_data_as_train_test(self,dataframe: pd.DataFrame):
         try:
-            train_set , test_set  = train_test_split(dataframe,self.data_injestion_config.data_injestion_train_test_ratio)
-            logging.info("Performed train test split on Dataframe")
+            train_set, test_set = train_test_split(
+                dataframe, test_size=self.data_ingestion_config.data_injestion_train_test_ratio
+            )
+            logging.info("Performed train test split on the dataframe")
 
-            dir_name = self.data_injestion_config.training_file_path
-            os.makedirs(dir_name,exist_ok=True)
+            logging.info(
+                "Exited split_data_as_train_test method of Data_Ingestion class"
+            )
+            
+            dir_path = os.path.dirname(self.data_ingestion_config.training_file_path)
+            
+            os.makedirs(dir_path, exist_ok=True)
+            
+            logging.info(f"Exporting train and test file path.")
+            
+            train_set.to_csv(
+                self.data_ingestion_config.training_file_path, index=False, header=True
+            )
 
-            logging.info("Exporting train and test file path")
+            test_set.to_csv(
+                self.data_ingestion_config.testing_file_path, index=False, header=True
+            )
+            logging.info(f"Exported train and test file path.")
 
-            train_set.to_csv(self.data_injestion_config.training_file_path,index=False,header = True)
-            test_set.to_csv(self.data_injestion_config.testing_file_path,index=False,header = True)
-
-            logging.info("Exported the train and test file")
+            
         except Exception as e:
             raise NetworkSecurityException(e,sys)
-    
-
-
-    def initial_data_injestion(self):
+        
+        
+    def initiate_data_ingestion(self):
         try:
-            dataframe = self.export_collection_to_dataframe()
-            dataframe = self.export_data_into_feature_store(dataframe)
-            self.split_data_train_test_split(dataframe)
-            data_injestion_artifact = DataInjestionArtifact(trained_file_path=self.data_injestion_config.training_file_path,test_file_path=self.data_injestion_config.testing_file_path)
-            return data_injestion_artifact
+            dataframe=self.export_collection_as_dataframe()
+            dataframe=self.export_data_into_feature_store(dataframe)
+            self.split_data_as_train_test(dataframe)
+            dataingestionartifact=DataInjestionArtifact(trained_file_path=self.data_ingestion_config.training_file_path,
+                                                        test_file_path=self.data_ingestion_config.testing_file_path)
+            return dataingestionartifact
 
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
+            raise NetworkSecurityException

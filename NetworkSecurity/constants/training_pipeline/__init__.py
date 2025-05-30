@@ -11,7 +11,7 @@ FILE_NAME :str="phisingData.csv"
 TRAIN_FILE_NAME:str= "train.csv"
 TEST_FILE_NAME:str= "test.csv"
 
-
+ ## Data Injestion Constants
 
 DATA_INJESTION_COLLECTION_NAME:str = "NetworkData"
 DATA_INJESTION_DATABASE_NAME:str = "Siddhant"
